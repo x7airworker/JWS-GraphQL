@@ -33,7 +33,7 @@ public class HttpGraphQLHandler implements RequestHandler {
         if (query != null) {
             ExecutionResult result = graphQL.execute(ExecutionInput.newExecutionInput()
                     .query(query)
-                    .context(raw)
+                    .context(exchange)
                     .build());
             if (result.getErrors().size() > 0) {
                 exchange.status(400);
