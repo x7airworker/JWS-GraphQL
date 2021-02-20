@@ -1,24 +1,22 @@
 package de.x7airworker.jwsgraphql;
 
+import com.google.gson.Gson;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
-import org.javawebstack.abstractdata.AbstractElement;
 import org.javawebstack.abstractdata.AbstractMapper;
-import org.javawebstack.abstractdata.AbstractObject;
 import org.javawebstack.abstractdata.util.QueryString;
 import org.javawebstack.httpserver.Exchange;
 import org.javawebstack.httpserver.handler.RequestHandler;
 import org.javawebstack.httpserver.helper.HttpMethod;
 import org.javawebstack.injector.Injector;
 
-import javax.servlet.http.HttpServletRequest;
 
 public class HttpGraphQLHandler implements RequestHandler {
     private final AbstractMapper abstractMapper = new AbstractMapper();
     private final GraphQL graphQL;
 
-    protected HttpGraphQLHandler (Injector injector) {
+    protected HttpGraphQLHandler(Injector injector) {
         graphQL = injector.getInstance(GraphQL.class);
     }
 
@@ -28,35 +26,35 @@ public class HttpGraphQLHandler implements RequestHandler {
             exchange.status(405);
             return "GraphQL only supports GET/POST operations.";
         }
-        HttpServletRequest raw = exchange.rawRequest();
-        String query = getQuery(exchange);
-        if (query != null) {
-            ExecutionResult result = graphQL.execute(ExecutionInput.newExecutionInput()
-                    .query(query)
-                    .context(exchange)
-                    .build());
+        ExecutionInput input = getQuery(exchange);
+        if (input != null) {
+            ExecutionResult result = graphQL.execute(input);
             if (result.getErrors().size() > 0) {
                 exchange.status(400);
-                return abstractMapper.toAbstract(result.getErrors()).toJson();
             }
-            return abstractMapper.toAbstract(result.getData()).toJson();
+            return abstractMapper.toAbstract(result).toJson().toString();
         }
         return "Query missing.";
     }
 
-    private String getQuery(Exchange exchange) {
-        String query = null;
+    private ExecutionInput getQuery(Exchange exchange) {
+        ExecutionInput input = null;
         if (exchange.getMethod() == HttpMethod.GET) {
-            query = new QueryString(exchange.rawRequest().getQueryString()).get("query");
+            String query = new QueryString(exchange.rawRequest().getQueryString()).get("query");
             if (query == null)
                 exchange.status(400);
+            input = ExecutionInput.newExecutionInput(query).context(exchange).build();
         } else if (exchange.getMethod() == HttpMethod.POST) {
-            AbstractElement element = exchange.body(AbstractObject.class).get("query");
-            if (element != null)
-                query = element.string();
-            if (query == null)
+            byte[] bytes = exchange.read();
+            if (bytes.length == 0) {
                 exchange.status(500);
+            } else {
+                String in = new String(bytes);
+                in = in.replace("\\n", "").replace("\\r", "");
+                ExecutionInput.Builder builder = new Gson().fromJson(in, ExecutionInput.Builder.class);
+                input = builder.context(exchange).build();
+            }
         }
-        return query;
+        return input;
     }
 }

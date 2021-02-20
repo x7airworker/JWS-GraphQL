@@ -8,7 +8,7 @@ import org.javawebstack.command.CommandSystem;
 import org.javawebstack.framework.WebApplication;
 import org.javawebstack.framework.module.Module;
 import org.javawebstack.httpserver.HTTPServer;
-import org.javawebstack.injector.SimpleInjector;
+import org.javawebstack.injector.Injector;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.function.Consumer;
@@ -27,7 +27,7 @@ public class GraphQLModule implements Module {
         this("/graphql", services);
     }
 
-    public void setupInjection(WebApplication application, SimpleInjector injector) {
+    public void setupInjection(WebApplication application, Injector injector) {
         GraphQLSchemaGenerator generator = new GraphQLSchemaGenerator();
         for (Class clazz : services) {
             Object instance = injector.getInstance(clazz);
