@@ -32,6 +32,9 @@ public class HttpGraphQLHandler implements RequestHandler {
             if (result.getErrors().size() > 0) {
                 exchange.status(400);
             }
+
+            exchange.header("Content-Type", "application/json");
+
             return abstractMapper.toAbstract(result).toJson().toString();
         }
         return "Query missing.";
